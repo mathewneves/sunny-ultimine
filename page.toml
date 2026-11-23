@@ -1,0 +1,20 @@
+summary = "Break whole ore veins, tunnels and shapes in one swing, plus multi-block tool actions and crop harvesting."
+description = """
+**Sunny Ultimine** lets you mine connected blocks, tunnels, flat squares, and stairways in one swing while holding the Ultimine key (`~` / Grave by default).
+
+### Features
+- **Six mining shapes**: Connected Blocks (vein mining), Straight Line, Flat Square (3x3), Wide Tunnel (3x3), Stairs Down, and Stairs Up — cycle shapes with Shift + Scroll or Up/Down.
+- **3D outline preview & HUD panel**: See the exact blocks that will be affected, current shape, status, and cooldown bar before you break.
+- **Multi-block tool actions**: Right-click with an axe, shovel, or hoe while holding the Ultimine key to strip logs, flatten paths, or till farmland across the selection.
+- **Crop harvesting**: Right-click mature crops, cocoa pods, or sweet berry bushes to harvest and replant in bulk.
+- **Configurable & server-friendly**: Control max blocks, exhaustion and XP costs, cooldowns, tool requirements, and block/tool tags via config or `/sunny_ultimine`.
+"""
+categories = ["utility"]
+
+[[screenshots]]
+path = "page/vein-mining.png"
+caption = "Vein mining a diamond ore cluster with 3D outline preview and HUD panel"
+
+[[screenshots]]
+path = "page/shape-menu.png"
+caption = "Wide Tunnel (3x3) shape selection showing 45 blocks previewed"
