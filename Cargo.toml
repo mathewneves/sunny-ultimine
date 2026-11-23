@@ -8,9 +8,6 @@ edition = "2024"
 [lib]
 path = "src/lib.rs"
 
-[features]
-dev = []
-
 [dependencies]
 sunrise-mod-api = { path = ".sunrise/sdk/api/crates/sunrise-mod-api" }
 serde_json = "1.0.151"

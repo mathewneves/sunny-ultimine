@@ -99,17 +99,14 @@ pub fn is_valid_tool(
             .unwrap_or(false)
 }
 
-/// Fake players are refused, except during `/sunny_ultimine_dev` commands in `dev` builds.
+/// Fake players are refused, except during `/sunny_ultimine_dev` commands when `SUNNY_ULTIMINE_DEV=1`.
 pub fn fake_blocked(host: &dyn Host, state: &ModState, player: PlayerRef) -> bool {
-    #[cfg(feature = "dev")]
     if state
         .dev_allow_fake
         .load(std::sync::atomic::Ordering::Relaxed)
     {
         return false;
     }
-    #[cfg(not(feature = "dev"))]
-    let _ = state;
     player.is_fake(host).unwrap_or(false)
 }
 

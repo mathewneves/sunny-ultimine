@@ -2,7 +2,6 @@
 # Headless check: run the sunny-ultimine instance's build (Sunrise launcher) as a dedicated server in a scratch folder,
 # send console commands, then stop. Never touches a real game folder. The native build holds the mod's code and content
 # (its sunrise-native-mods/sunny_ultimine), so nothing is installed here.
-# Scenarios drive players with /sunny_ultimine_dev, which only a `dev` feature build has: run `tools/build.sh --dev` first.
 # Usage: tools/server-check.sh "setblock 0 100 0 minecraft:iron_ore" ["more commands" ...]
 #    or: tools/server-check.sh -f tools/scenarios/<name>.txt
 # Commands are sent SUNNY_ULTIMINE_PACE seconds apart (default 0.1: two game ticks), once the server logs "Done ("; a
@@ -84,6 +83,4 @@ grep -q 'Done (' "$log" || { echo "server-check: FAIL: the server didn't start";
 while IFS= read -r re; do
   grep -Eq -- "$re" "$log" || { echo "server-check: FAIL: expect $re"; fail=1; }
 done < "$dir/expects"
-grep -q 'sunny_ultimine_dev' "$dir/commands" && grep -q 'Unknown or incomplete command' "$log" &&
-  echo "server-check: hint: is the build missing the dev feature? Run tools/build.sh --dev"
 exit "$fail"

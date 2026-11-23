@@ -1,7 +1,6 @@
 #!/bin/bash
 # usage: tools/devcheck.sh [mod dir] [check|test|clippy|doc] [extra cargo args]
 # Compiles the mod against the pinned Sunrise source ($SUNRISE_SRC) in a scratch copy, without the launcher.
-# The dev commands need the `dev` feature: tools/devcheck.sh . check --features dev
 set -eu
 root="$(cd "$(dirname "$0")/.." && pwd)"
 if [ $# -gt 0 ] && [ -f "$1/sunrise-mod.toml" ]; then MOD=$(cd "$1" && pwd); shift; else MOD="$root"; fi

@@ -25,7 +25,6 @@ pub fn register_commands(commands: &mut Vec<Command>) {
         "sunny_ultimine config set <key:word> <value:text>",
         2,
     ));
-    #[cfg(feature = "dev")]
     if dev::enabled() {
         for usage in [
             "sunny_ultimine_dev press <player:word> <pressed:boolean>",
@@ -56,7 +55,6 @@ pub fn run_command(
     let words: Vec<&str> = command.literals.iter().map(String::as_str).collect();
     match words.split_first() {
         Some((&ROOT, rest)) => run_main(host, state, source, command, rest),
-        #[cfg(feature = "dev")]
         Some((&dev::ROOT, rest)) if dev::enabled() => {
             dev::run_dev(host, state, source, command, rest)
         }
@@ -209,7 +207,6 @@ fn status_line(host: &mut dyn ServerHost, state: &ModState, player: PlayerRef) -
 }
 
 // --- dev commands (`SUNNY_ULTIMINE_DEV=1`): the headless check has no client to press keys or click with ---------
-#[cfg(feature = "dev")]
 mod dev {
     use std::collections::BTreeMap;
     use std::sync::atomic::Ordering;

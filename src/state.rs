@@ -284,7 +284,6 @@ pub struct ModState {
     /// Re-entrancy guard for multi-block right-click tool operations.
     pub right_click_reentrant: AtomicBool,
     /// Allows fake players during explicit `/sunny_ultimine_dev` headless server test commands only.
-    #[cfg(feature = "dev")]
     pub dev_allow_fake: AtomicBool,
     /// Client-side state (config, input, HUD, outline cache).
     pub client: Mutex<ClientState>,

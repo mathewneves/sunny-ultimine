@@ -139,10 +139,9 @@ The scripts in `tools/` find their tools through these environment variables:
 ```sh
 (cd src/core && cargo test)               # pure game-free logic
 tools/devcheck.sh                         # cargo check against the pinned SDK (also: test, clippy, doc)
-tools/devcheck.sh . clippy --features dev -- -D warnings
+tools/devcheck.sh . clippy -- -D warnings
 tools/content-check.sh                    # validate assets/ and data/ with cargo sunrise-mod build + check
 tools/build.sh                            # native-lock (if no Cargo.lock) + native-build into the instance
-tools/build.sh --dev                      # the same with the `dev` Cargo feature, for server scenarios
 tools/server-check.sh -f tools/scenarios/<name>.txt   # headless server scenario with expect lines
 tools/server-check.sh "say hi"            # or ad-hoc console commands
 tools/client.sh start                     # offscreen, muted single-player client driven by sunrise-ctl
@@ -152,10 +151,9 @@ tools/client.sh stop
 
 ### Dev commands
 
-`/sunny_ultimine_dev` (press keys, set shapes, give items, preview, break and right-click for a named player) exists
-only in builds with the `dev` Cargo feature (`--features dev`); release builds don't have it. `tools/build.sh --dev`
-builds with it, and the scenarios in `tools/scenarios/` need such a build. `tools/server-check.sh` also sets
-`SUNNY_ULTIMINE_DEV=1`.
+`/sunny_ultimine_dev` (press keys, set shapes, give items, preview, break and right-click for a named player) is
+disabled by default and only registered when `SUNNY_ULTIMINE_DEV=1` is set in the server environment (and requires op
+level 2). `tools/server-check.sh` sets `SUNNY_ULTIMINE_DEV=1` automatically for the scenarios in `tools/scenarios/`.
 
 Scenario files hold one console command per line, `wait` (hold 1 s), `pace <seconds>`, `#` comments and
 `expect <extended regex>` lines matched against the server log.
