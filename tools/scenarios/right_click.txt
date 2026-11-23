@@ -1,0 +1,88 @@
+# Ultimine right-click actions by the dev player "tester" in survival: axe strip / unwax / scrape, shovel paths,
+# hoe tilling, crop harvest with replant, and single-crop harvest without the Ultimine key.
+forceload add -16 32 63 63
+sunny_ultimine_dev gamemode tester survival
+sunny_ultimine_dev food tester 20
+sunny_ultimine_dev press tester true
+sunny_ultimine_dev shape tester shapeless
+
+# Axe: a row of 5 oak logs strips at once; the log past the gap stays.
+sunny_ultimine_dev give tester diamond_axe
+fill 0 100 44 4 100 44 minecraft:oak_log
+setblock 6 100 44 minecraft:oak_log
+sunny_ultimine_dev right_click tester 0 100 44 up
+execute if block 0 100 44 minecraft:stripped_oak_log if block 2 100 44 minecraft:stripped_oak_log if block 4 100 44 minecraft:stripped_oak_log run say RC1 logs stripped
+execute if block 6 100 44 minecraft:oak_log run say RC1 separate log kept
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=0 100 44 face=up
+expect \] RC1 logs stripped
+expect \] RC1 separate log kept
+# Axe: a row of waxed oxidized copper unwaxes; a row of oxidized copper scrapes one stage back.
+fill 0 100 48 3 100 48 minecraft:waxed_oxidized_copper
+sunny_ultimine_dev right_click tester 0 100 48 up
+execute if block 0 100 48 minecraft:oxidized_copper if block 3 100 48 minecraft:oxidized_copper run say RC1 copper unwaxed
+fill 0 100 52 3 100 52 minecraft:oxidized_copper
+sunny_ultimine_dev right_click tester 0 100 52 up
+execute if block 0 100 52 minecraft:weathered_copper if block 3 100 52 minecraft:weathered_copper run say RC1 copper scraped
+sunny_ultimine_dev status tester
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=0 100 48 face=up
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=0 100 52 face=up
+expect \] RC1 copper unwaxed
+expect \] RC1 copper scraped
+expect DEV_STATUS player=tester .*main=minecraft:diamond_axex1@13 
+
+# Shovel: small_square on a 3x3 of grass and dirt makes 9 paths; the grass outside stays.
+sunny_ultimine_dev shape tester small_square
+sunny_ultimine_dev give tester diamond_shovel
+fill 9 100 44 11 100 46 minecraft:grass_block
+setblock 10 100 45 minecraft:dirt
+setblock 9 100 46 minecraft:dirt
+setblock 12 100 45 minecraft:grass_block
+sunny_ultimine_dev right_click tester 10 100 45 up
+execute if block 9 100 44 minecraft:dirt_path if block 10 100 45 minecraft:dirt_path if block 9 100 46 minecraft:dirt_path if block 11 100 46 minecraft:dirt_path if block 11 100 44 minecraft:dirt_path run say RC2 paths made
+execute if block 12 100 45 minecraft:grass_block run say RC2 outside grass kept
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=10 100 45 face=up
+expect \] RC2 paths made
+expect \] RC2 outside grass kept
+
+# Hoe: small_square on a 3x3 of dirt tills 9 farmland.
+sunny_ultimine_dev give tester diamond_hoe
+fill 20 100 44 22 100 46 minecraft:dirt
+sunny_ultimine_dev right_click tester 21 100 45 up
+execute if block 20 100 44 minecraft:farmland if block 21 100 45 minecraft:farmland if block 22 100 46 minecraft:farmland if block 20 100 46 minecraft:farmland if block 22 100 44 minecraft:farmland run say RC3 farmland tilled
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=21 100 45 face=up
+expect \] RC3 farmland tilled
+
+# Harvest: a 3x3 of ripe wheat resets to age 0; 9 wheat and the seeds left after replanting drop above the click.
+sunny_ultimine_dev shape tester shapeless
+sunny_ultimine_dev give tester air
+fill 30 99 44 32 99 46 minecraft:farmland
+fill 30 100 44 32 100 46 minecraft:wheat[age=7]
+sunny_ultimine_dev right_click tester 31 100 45 up
+sunny_ultimine_dev drops 31 101 45 1
+execute if block 30 100 44 minecraft:wheat[age=0] if block 31 100 45 minecraft:wheat[age=0] if block 32 100 46 minecraft:wheat[age=0] if block 30 100 46 minecraft:wheat[age=0] if block 32 100 44 minecraft:wheat[age=0] run say RC4 wheat replanted
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=31 100 45 face=up
+expect DEV_DROPS pos=31 101 45 item_entities=[12] items=minecraft:wheatx9(,minecraft:wheat_seedsx[0-9]+)? 
+expect \] RC4 wheat replanted
+kill @e[type=item]
+
+# Single-crop harvest without the Ultimine key: only the clicked wheat resets; a ripe berry bush goes back to age 1.
+sunny_ultimine_dev press tester false
+fill 40 99 44 41 99 44 minecraft:farmland
+setblock 40 100 44 minecraft:wheat[age=7]
+setblock 41 100 44 minecraft:wheat[age=7]
+sunny_ultimine_dev right_click tester 40 100 44 up
+sunny_ultimine_dev drops 40 101 44 0
+execute if block 40 100 44 minecraft:wheat[age=0] if block 41 100 44 minecraft:wheat[age=7] run say RC5 single wheat harvested
+setblock 44 99 44 minecraft:grass_block
+setblock 44 100 44 minecraft:sweet_berry_bush[age=3]
+sunny_ultimine_dev right_click tester 44 100 44 up
+sunny_ultimine_dev drops 44 101 44 0
+execute if block 44 100 44 minecraft:sweet_berry_bush[age=1] run say RC5 berry bush harvested
+expect DEV_PRESS player=tester fake=(true|false) pressed=false
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=40 100 44 face=up
+expect DEV_DROPS pos=40 101 44 item_entities=[12] items=minecraft:wheatx1[, ]
+expect \] RC5 single wheat harvested
+expect DEV_RIGHT_CLICK result=SuccessServer player=tester pos=44 100 44 face=up
+expect DEV_DROPS pos=44 101 44 item_entities=1 items=minecraft:sweet_berriesx[23] 
+expect \] RC5 berry bush harvested
+kill @e[type=item]

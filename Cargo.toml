@@ -1,0 +1,19 @@
+[package]
+name = "mod-sunny-ultimine"
+description = "Sunny Ultimine native trait mod for Sunrise"
+license = "MIT"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+dev = []
+
+[dependencies]
+sunrise-mod-api = { path = ".sunrise/sdk/api/crates/sunrise-mod-api" }
+serde_json = "1.0.151"
+
+[dependencies.sunny-ultimine-core]
+path = "src/core"

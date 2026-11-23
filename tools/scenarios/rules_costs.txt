@@ -1,0 +1,180 @@
+# Server rules and costs, run by the dev player "tester" in survival: tag merging, the hardness guard,
+# prevent_tool_break, require_tool, require_valid_tool_for_block, the cooldown, the XP and hunger costs and the
+# fake-player refusal. Every setting changed here is put back to its default at the end.
+forceload add -16 -16 79 47
+fill -8 96 16 60 96 40 minecraft:glass
+sunny_ultimine_dev gamemode tester survival
+sunny_ultimine_dev food tester 20
+sunny_ultimine_dev xp tester 0
+sunny_ultimine_dev press tester true
+sunny_ultimine_dev shape tester shapeless
+sunny_ultimine_dev give tester diamond_pickaxe
+
+# Cooldown (first: any earlier survival break would already be cooling down): 100 ticks; the second break is refused.
+sunny_ultimine config set ultimine_cooldown 100
+setblock 50 100 20 minecraft:stone
+setblock 50 100 23 minecraft:stone
+sunny_ultimine_dev break tester 50 100 20 up
+sunny_ultimine_dev break tester 50 100 23 up
+sunny_ultimine_dev status tester
+execute if block 50 100 20 minecraft:air if block 50 100 23 minecraft:stone run say R6 cooldown held the second break
+sunny_ultimine config set ultimine_cooldown 0
+expect ultimine_cooldown = 100
+expect DEV_BREAK ok=true player=tester pos=50 100 20 block=minecraft:stone can=Allowed
+expect DEV_BREAK ok=false player=tester pos=50 100 23 block=minecraft:stone can=OnCooldown
+expect DEV_STATUS player=tester .* cooldown_ticks=100 on_cooldown=true
+expect \] R6 cooldown held the second break
+expect ultimine_cooldown = 0
+
+# Tag merging (shapeless): iron_ore + deepslate_iron_ore share minecraft:iron_ores; the stone on either side is
+# not an iron ore and stays.
+setblock 0 100 20 minecraft:stone
+setblock 1 100 20 minecraft:iron_ore
+setblock 2 100 20 minecraft:deepslate_iron_ore
+setblock 3 100 20 minecraft:stone
+sunny_ultimine_dev preview tester 1 100 20 up
+sunny_ultimine_dev break tester 1 100 20 up
+sunny_ultimine_dev drops 1 100 20 1
+execute if block 1 100 20 minecraft:air if block 2 100 20 minecraft:air if block 0 100 20 minecraft:stone if block 3 100 20 minecraft:stone run say R1 iron ores merged stone kept
+expect DEV_PREVIEW player=tester pos=1 100 20 face=up can=Some\(Allowed\) matcher=ByTagsShapeless count=2 blocks=1,100,20;2,100,20$
+expect DEV_DROPS pos=1 100 20 item_entities=1 items=minecraft:raw_ironx2 
+expect \] R1 iron ores merged stone kept
+kill @e[type=item]
+kill @e[type=experience_orb]
+# minecraft:base_stone_overworld: stone, granite, deepslate (harder, but tag-merged) and andesite go; the iron ore stays.
+setblock 0 100 24 minecraft:stone
+setblock 1 100 24 minecraft:granite
+setblock 2 100 24 minecraft:deepslate
+setblock 3 100 24 minecraft:andesite
+setblock 4 100 24 minecraft:iron_ore
+sunny_ultimine_dev preview tester 0 100 24 up
+sunny_ultimine_dev break tester 0 100 24 up
+sunny_ultimine_dev drops 0 100 24 2
+execute if block 2 100 24 minecraft:air if block 3 100 24 minecraft:air if block 4 100 24 minecraft:iron_ore run say R1b base stones merged ore kept
+expect DEV_PREVIEW player=tester pos=0 100 24 face=up can=Some\(Allowed\) matcher=ByTagsShapeless count=4 blocks=0,100,24;1,100,24;2,100,24;3,100,24$
+expect DEV_DROPS pos=0 100 24 item_entities=4 items=minecraft:andesitex1,minecraft:cobbled_deepslatex1,minecraft:cobblestonex1,minecraft:granitex1 
+expect \] R1b base stones merged ore kept
+kill @e[type=item]
+
+# Hardness guard: small_square on stone selects the obsidian in the square but does not break it.
+sunny_ultimine_dev shape tester small_square
+fill 9 99 28 11 101 28 minecraft:stone
+setblock 11 101 28 minecraft:obsidian
+sunny_ultimine_dev preview tester 10 100 28 north
+sunny_ultimine_dev break tester 10 100 28 north
+sunny_ultimine_dev drops 10 100 28 1
+execute if block 11 101 28 minecraft:obsidian if block 9 99 28 minecraft:air if block 11 99 28 minecraft:air run say R2 obsidian kept
+expect DEV_PREVIEW player=tester pos=10 100 28 face=north can=Some\(Allowed\) matcher=ByTagsShaped count=9 
+expect DEV_DROPS pos=10 100 28 item_entities=1 items=minecraft:cobblestonex8 
+expect \] R2 obsidian kept
+kill @e[type=item]
+
+# prevent_tool_break 5: a diamond pickaxe with 6 uses left mines one block of a 5-block tunnel and stops at 5 left.
+sunny_ultimine config set prevent_tool_break 5
+sunny_ultimine_dev shape tester small_tunnel
+sunny_ultimine_dev give tester diamond_pickaxe 1555
+fill 20 100 20 20 100 24 minecraft:stone
+sunny_ultimine_dev preview tester 20 100 20 north
+sunny_ultimine_dev break tester 20 100 20 north
+sunny_ultimine_dev status tester
+execute if block 20 100 20 minecraft:air if block 20 100 21 minecraft:stone if block 20 100 24 minecraft:stone run say R3 stopped after one block
+sunny_ultimine config set prevent_tool_break 0
+expect prevent_tool_break = 5
+expect DEV_PREVIEW player=tester pos=20 100 20 face=north can=Some\(Allowed\) matcher=ByTagsShaped count=5 
+expect DEV_BREAK ok=true player=tester pos=20 100 20 block=minecraft:stone can=Allowed
+expect DEV_STATUS player=tester .*shape=small_tunnel .*main=minecraft:diamond_pickaxex1@1556 
+expect \] R3 stopped after one block
+expect prevent_tool_break = 0
+kill @e[type=item]
+
+# require_tool: a bare hand is refused (NoTool); a diamond pickaxe works.
+sunny_ultimine_dev shape tester shapeless
+sunny_ultimine config set require_tool true
+sunny_ultimine_dev give tester air
+setblock 30 100 20 minecraft:stone
+sunny_ultimine_dev break tester 30 100 20 up
+execute if block 30 100 20 minecraft:stone run say R4 bare hand refused
+sunny_ultimine_dev give tester diamond_pickaxe
+sunny_ultimine_dev break tester 30 100 20 up
+execute if block 30 100 20 minecraft:air run say R4 pickaxe allowed
+sunny_ultimine config set require_tool false
+expect require_tool = true
+expect DEV_BREAK ok=false player=tester pos=30 100 20 block=minecraft:stone can=NoTool
+expect DEV_BREAK ok=true player=tester pos=30 100 20 block=minecraft:stone can=Allowed
+expect \] R4 bare hand refused
+expect \] R4 pickaxe allowed
+expect require_tool = false
+kill @e[type=item]
+
+# require_valid_tool_for_block: a wooden pickaxe can't harvest diamond ore (NoTool); an iron pickaxe can.
+sunny_ultimine config set require_valid_tool_for_block true
+setblock 40 100 20 minecraft:diamond_ore
+sunny_ultimine_dev give tester wooden_pickaxe
+sunny_ultimine_dev break tester 40 100 20 up
+execute if block 40 100 20 minecraft:diamond_ore run say R5 wooden pickaxe refused
+sunny_ultimine_dev give tester iron_pickaxe
+sunny_ultimine_dev break tester 40 100 20 up
+sunny_ultimine_dev drops 40 100 20 1
+execute if block 40 100 20 minecraft:air run say R5 iron pickaxe allowed
+sunny_ultimine config set require_valid_tool_for_block false
+expect require_valid_tool_for_block = true
+expect DEV_BREAK ok=false player=tester pos=40 100 20 block=minecraft:diamond_ore can=NoTool
+expect DEV_BREAK ok=true player=tester pos=40 100 20 block=minecraft:diamond_ore can=Allowed
+expect DEV_DROPS pos=40 100 20 item_entities=1 items=minecraft:diamondx1 
+expect \] R5 wooden pickaxe refused
+expect \] R5 iron pickaxe allowed
+expect require_valid_tool_for_block = false
+kill @e[type=item]
+kill @e[type=experience_orb]
+
+# experience_per_block 5: 12 XP pays for 2 of a 3-block line (the first block is free, so 5 XP is taken);
+# 4 XP pays for none.
+sunny_ultimine config set experience_per_block 5.0
+sunny_ultimine_dev give tester diamond_pickaxe
+sunny_ultimine_dev xp tester 12
+fill 0 100 32 2 100 32 minecraft:stone
+sunny_ultimine_dev preview tester 0 100 32 up
+sunny_ultimine_dev break tester 0 100 32 up
+wait
+sunny_ultimine_dev status tester
+execute if block 0 100 32 minecraft:air if block 1 100 32 minecraft:air if block 2 100 32 minecraft:stone run say R7 xp capped the line at two
+sunny_ultimine_dev xp tester 4
+setblock 0 100 34 minecraft:stone
+sunny_ultimine_dev break tester 0 100 34 up
+execute if block 0 100 34 minecraft:stone run say R7 too little xp refused
+sunny_ultimine config set experience_per_block 0.0
+expect experience_per_block = 5.0
+expect DEV_XP player=tester xp=12
+expect DEV_PREVIEW player=tester pos=0 100 32 face=up can=Some\(Allowed\) matcher=ByTagsShapeless count=2 blocks=0,100,32;1,100,32$
+expect DEV_BREAK ok=true player=tester pos=0 100 32 block=minecraft:stone
+expect DEV_STATUS player=tester .* xp=7 creative=false
+expect \] R7 xp capped the line at two
+expect DEV_BREAK ok=false player=tester pos=0 100 34 block=minecraft:stone can=Allowed
+expect \] R7 too little xp refused
+expect experience_per_block = 0.0
+kill @e[type=item]
+
+# Hunger: 2000 exhaustion per block (10 points each) at food 1 ends the line early; at food 0 nothing is allowed.
+sunny_ultimine config set exhaustion_per_block 2000.0
+sunny_ultimine_dev xp tester 0
+sunny_ultimine_dev food tester 1
+fill 10 100 32 14 100 32 minecraft:stone
+sunny_ultimine_dev break tester 10 100 32 up
+execute unless block 14 100 32 minecraft:air run say R8 hunger stopped the line early
+wait
+sunny_ultimine_dev food tester 0
+setblock 10 100 36 minecraft:stone
+sunny_ultimine_dev break tester 10 100 36 up
+sunny_ultimine config set exhaustion_per_block 20.0
+sunny_ultimine_dev food tester 20
+expect exhaustion_per_block = 2000.0
+expect DEV_BREAK ok=true player=tester pos=10 100 32 block=minecraft:stone
+expect \] R8 hunger stopped the line early
+expect DEV_BREAK ok=false player=tester pos=10 100 36 block=minecraft:stone can=NoFood
+expect exhaustion_per_block = 20.0
+kill @e[type=item]
+
+# Fake players can't ultimine in normal play (the dev break/preview commands lift that on purpose).
+setblock 30 100 36 minecraft:stone
+sunny_ultimine_dev check_fake fakebot 30 100 36
+expect DEV_FAKE_CHECK player=fakebot can=Some\(OtherRestriction\)

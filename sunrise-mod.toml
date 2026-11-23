@@ -1,0 +1,13 @@
+id = "sunny_ultimine"
+name = "Sunny Ultimine"
+version = "0.1.0"
+description = "Break whole ore veins, tunnels and stairways in one swing, apply tool actions across many blocks at once, and harvest crops in bulk. Built natively for Sunrise."
+authors = ["mathewneves"]
+api = "0.2"
+side = "both"
+capabilities = ["registries"]
+
+[native]
+game = "26.3"
+sunrise = "94256510f74e6843754e0a93fd9e4da7e45b1056"
+mixins = "e59da9094f0c2fdda6c627fe9eff22dec6a906f0"

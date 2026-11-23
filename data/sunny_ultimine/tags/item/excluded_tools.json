@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#sunny_ultimine:excluded_tools/strict",
+      "required": false
+    }
+  ]
+}

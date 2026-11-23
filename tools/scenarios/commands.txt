@@ -1,0 +1,55 @@
+# /sunny_ultimine config get/set (valid, unknown key, bad value, clamping), /sunny_ultimine status and shape, and
+# /sunny_ultimine_dev status. max_blocks 32 must cap a real selection; every setting is put back at the end.
+forceload add -16 -16 79 15
+sunny_ultimine config get max_blocks
+sunny_ultimine config set max_blocks 32
+sunny_ultimine config get max_blocks
+expect max_blocks = 64
+expect max_blocks = 32
+# Unknown keys and values that don't parse are refused and change nothing.
+sunny_ultimine config get no_such_key
+sunny_ultimine config set no_such_key 5
+sunny_ultimine config set max_blocks lots
+sunny_ultimine config set require_tool maybe
+sunny_ultimine config get require_tool
+expect Unknown setting "no_such_key"
+expect Could not set no_such_key: unknown setting "no_such_key"
+expect Could not set max_blocks: 
+expect Could not set require_tool: 
+expect require_tool = false
+# Out-of-range numbers are clamped to the field's range.
+sunny_ultimine config set prevent_tool_break 500
+sunny_ultimine config set prevent_tool_break 0
+expect prevent_tool_break = 100
+expect prevent_tool_break = 0
+# Tag lists take a bare comma-separated list.
+sunny_ultimine config set merge_tags minecraft:logs, minecraft:*_ores
+sunny_ultimine config get merge_tags
+sunny_ultimine config set merge_tags minecraft:base_stone_overworld, minecraft:*_ores, c:ores/*, forge:ores/*
+expect merge_tags = \["minecraft:logs", "minecraft:\*_ores"\]
+expect merge_tags = \["minecraft:base_stone_overworld", "minecraft:\*_ores", "c:ores/\*", "forge:ores/\*"\]
+
+# max_blocks 32 caps a 5x5x2 (50-block) stone slab at 32.
+sunny_ultimine_dev gamemode tester survival
+sunny_ultimine_dev give tester diamond_pickaxe
+sunny_ultimine_dev press tester true
+sunny_ultimine_dev shape tester shapeless
+fill 0 100 0 4 101 4 minecraft:stone
+sunny_ultimine_dev preview tester 2 100 2 up
+sunny_ultimine_dev status tester
+sunny_ultimine config set max_blocks 64
+sunny_ultimine_dev preview tester 2 100 2 up
+fill 0 100 0 4 101 4 minecraft:air
+expect DEV_PREVIEW player=tester pos=2 100 2 face=up can=Some\(Allowed\) matcher=ByTagsShapeless count=32 
+expect DEV_STATUS player=tester fake=(true|false) pressed=true shape=shapeless cooldown_ticks=0 on_cooldown=false .*max_blocks=32 config=\[.*max_blocks = 32
+expect max_blocks = 64
+expect DEV_PREVIEW player=tester pos=2 100 2 face=up can=Some\(Allowed\) matcher=ByTagsShapeless count=50 
+
+# The player commands: status and shape need a player source (the console is told so).
+sunny_ultimine status
+sunny_ultimine shape
+sunny_ultimine shape bogus
+expect (Only players can use this command|Sunny Ultimine: shape=shapeless pressed=true max_blocks=64 cooldown_ticks=0 on_cooldown=false)
+sunny_ultimine_dev shape tester bogus
+expect DEV_SHAPE player=tester error=unknown_shape bogus
+expect (Only players can use this command|Unknown shape "bogus"\. Shapes: shapeless, small_tunnel)
