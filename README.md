@@ -160,4 +160,4 @@ Scenario files hold one console command per line, `wait` (hold 1 s), `pace <seco
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+Beerware, see [LICENSE](LICENSE).

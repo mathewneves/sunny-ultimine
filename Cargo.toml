@@ -1,7 +1,7 @@
 [package]
 name = "mod-sunny-ultimine"
 description = "Sunny Ultimine native trait mod for Sunrise"
-license = "MIT"
+license = "Beerware"
 version = "0.1.0"
 edition = "2024"
 

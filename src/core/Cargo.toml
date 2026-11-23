@@ -2,7 +2,7 @@
 name = "sunny-ultimine-core"
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
+license = "Beerware"
 description = "Game-free core logic for Sunny Ultimine (shapes, outline geometry, matchers, XP, config, codecs)"
 publish = false
 
