@@ -3,8 +3,8 @@
 use std::sync::{Arc, PoisonError};
 
 use mod_api::{
-    BlockKey, FileToIdConverter, Host, Identifier, ItemStack, ReloadApply, ReloadResourceError,
-    ServerReloadContext, ServerReloadListener, ServerReloadListeners,
+    BlockKey, FileToIdConverter, Host, Identifier, ItemStack, ReloadResourceError,
+    ServerReloadContext, ServerReloadListener, ServerReloadListeners, TagMembers,
 };
 use sunny_ultimine_core::matcher::{TagMatchSpec, resolve_tag_patterns};
 
@@ -50,10 +50,10 @@ impl ServerReloadListener for TagDiscoveryListener {
     fn prepare(
         &self,
         context: &ServerReloadContext,
-    ) -> Result<Box<dyn ReloadApply>, ReloadResourceError> {
+    ) -> Result<Box<dyn FnOnce() + Send + 'static>, ReloadResourceError> {
         let names: Vec<String> = context.list().map(ToString::to_string).collect();
         let state = Arc::clone(&self.0);
-        Ok(<dyn ReloadApply>::new(move || {
+        Ok(Box::new(move || {
             *state
                 .discovered_tags_inbox
                 .lock()
@@ -115,7 +115,7 @@ pub fn ensure_tag_index(host: &dyn Host, state: &ModState) {
     let whitelist = Identifier::parse(BLOCK_WHITELIST)
         .ok()
         .and_then(|id| tags.key(&id))
-        .and_then(|k| tags.blocks(k));
+        .map(|k| tags.blocks(k));
 
     let mut srv = state.server();
     let index = Arc::make_mut(&mut srv.tag_index);
@@ -123,9 +123,12 @@ pub fn ensure_tag_index(host: &dyn Host, state: &ModState) {
     index.shapeless_tags = shapeless_tags;
     index.shaped_any = shaped_any;
     index.shaped_tags = shaped_tags;
-    index.whitelist_empty = whitelist.as_ref().is_none_or(Vec::is_empty);
-    // Tags not loaded yet answer None: stay dirty so the whitelist is read again later.
-    index.dirty = whitelist.is_none();
+    index.whitelist_empty = match &whitelist {
+        Some(TagMembers::Members(members)) => members.is_empty(),
+        _ => true,
+    };
+    // Tags not loaded yet answer Unavailable: stay dirty so the whitelist is read again later.
+    index.dirty = matches!(whitelist, None | Some(TagMembers::Unavailable));
 }
 
 /// Whether `block` is in the block tag `tag_str` (no `#`); false when tags are unavailable.

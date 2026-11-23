@@ -90,19 +90,21 @@ pub fn looks_like_crop(host: &dyn Host, state: BlockState) -> bool {
         return false;
     }
     let id = state.block().id(host);
-    CROP_BLOCKS.contains(&id.as_str()) || CROP_TAGS.iter().any(|t| in_tag(host, state, t))
+    id.is_some_and(|id| CROP_BLOCKS.contains(&id))
+        || CROP_TAGS.iter().any(|t| in_tag(host, state, t))
 }
 
 /// The plant category of `state`, for the crop matcher.
 pub fn bush_type(host: &dyn Host, state: BlockState) -> BushType {
     let id = state.block().id(host);
-    if in_tag(host, state, "minecraft:crops") || EXTRA_AGE_CROPS.contains(&id.as_str()) {
+    if in_tag(host, state, "minecraft:crops") || id.is_some_and(|id| EXTRA_AGE_CROPS.contains(&id))
+    {
         BushType::Crop
     } else if in_tag(host, state, "minecraft:saplings") {
         BushType::Sapling
-    } else if id == COCOA {
+    } else if id == Some(COCOA) {
         BushType::Cocoa
-    } else if id == SWEET_BERRY_BUSH {
+    } else if id == Some(SWEET_BERRY_BUSH) {
         BushType::SweetBerry
     } else {
         BushType::Other
@@ -111,7 +113,11 @@ pub fn bush_type(host: &dyn Host, state: BlockState) -> BushType {
 
 /// Whether `state` is a crop, cocoa pod or sweet berry bush at its highest `age`.
 pub fn is_mature_harvestable(host: &dyn Host, state: BlockState) -> bool {
-    if NON_HARVESTABLE_CROPS.contains(&state.block().id(host).as_str()) {
+    if state
+        .block()
+        .id(host)
+        .is_some_and(|id| NON_HARVESTABLE_CROPS.contains(&id))
+    {
         return false;
     }
     if !matches!(
@@ -161,7 +167,7 @@ pub fn harvest_crops_in_shape(
         if !is_mature_harvestable(&*host, block_state) {
             continue;
         }
-        let sweet_berry = block_state.block().id(&*host) == SWEET_BERRY_BUSH;
+        let sweet_berry = block_state.block().id(&*host) == Some(SWEET_BERRY_BUSH);
         let reset = {
             let states = host.block_states();
             let age: u32 = block_state

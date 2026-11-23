@@ -21,12 +21,12 @@ use std::sync::Arc;
 
 use mod_api::{
     AddServerReloadListenersEvent, BlockDropsEvent, BreakBlockEvent, ClientDisconnectingEvent,
-    ClientHost, ClientTickPostEvent, ConfigLoadingEvent, ConfigReloadingEvent,
-    ConfigUnloadingEvent, Flow, GuiLayerDrawEvent, Hooks, Host, HostSide, LevelHost,
-    MouseScrollingEvent, PlayerLoggedInEvent, PlayerLoggedOutEvent, PlayerTickPostEvent,
-    RegisterCommandsEvent, RegisterConfigsEvent, RegisterGuiLayersEvent, Registrar,
-    RegistrationContext, RenderLevelStageEvent, RightClickBlockEvent, RunModCommandEvent,
-    ServerHost, ServerTickEvent, ServerTickPhase, SettingChangedEvent, TagsUpdatedEvent,
+    ClientHost, ClientTickPostEvent, ConfigContext, ConfigLoadingEvent, ConfigReloadingEvent,
+    ConfigUnloadingEvent, Flow, Hooks, HostSide, LevelHost, MouseScrollingEvent,
+    PlayerLoggedInEvent, PlayerLoggedOutEvent, PlayerTickPostEvent, RegisterCommandsEvent,
+    RegisterConfigsEvent, RegisterGuiLayersEvent, Registrar, RegistrationContext, ReloadContext,
+    RenderLevelStageEvent, RightClickBlockEvent, ServerHost, ServerTickEvent, ServerTickPhase,
+    SettingChangedEvent, TagsUpdatedEvent,
 };
 
 use state::ModState;
@@ -46,11 +46,11 @@ impl Hooks for SunnyUltimineMod {
         settings::register_settings(r);
     }
 
-    fn register_configs(&self, _host: HostSide<'_>, event: &mut RegisterConfigsEvent<'_>) {
+    fn register_configs(&self, _host: &dyn ConfigContext, event: &mut RegisterConfigsEvent<'_>) {
         settings::on_register_configs(event);
     }
 
-    fn config_loading(&self, _host: HostSide<'_>, event: &mut ConfigLoadingEvent<'_>) {
+    fn config_loading(&self, _host: &dyn ConfigContext, event: &mut ConfigLoadingEvent<'_>) {
         settings::on_config_loading(&self.state, event);
     }
 
@@ -71,30 +71,22 @@ impl Hooks for SunnyUltimineMod {
         _context: &RegistrationContext,
         event: &mut RegisterGuiLayersEvent<'_>,
     ) {
-        client_hud::register_gui_layers(event);
+        client_hud::register_gui_layers(&self.state, event);
     }
 
     fn register_commands(&self, _host: &mut dyn ServerHost, event: &mut RegisterCommandsEvent<'_>) {
-        commands::register_commands(event.commands);
-    }
-
-    fn run_mod_command(
-        &self,
-        host: &mut dyn ServerHost,
-        event: &mut RunModCommandEvent<'_>,
-    ) -> Flow {
-        commands::run_command(host, &self.state, event.source, event.command)
+        commands::register_commands(&self.state, event.commands);
     }
 
     fn add_server_reload_listeners(
         &self,
-        _host: &dyn Host,
+        _host: &dyn ReloadContext,
         event: &mut AddServerReloadListenersEvent<'_>,
     ) {
         tags::register_reload_listener(&self.state, event.listeners);
     }
 
-    fn tags_updated(&self, _host: HostSide<'_>, _event: &mut TagsUpdatedEvent) {
+    fn tags_updated(&self, _host: &dyn ReloadContext, _event: &mut TagsUpdatedEvent) {
         tags::mark_tags_dirty(&self.state);
     }
 
@@ -144,10 +136,6 @@ impl Hooks for SunnyUltimineMod {
 
     fn render_level_stage(&self, _host: &dyn ClientHost, event: &mut RenderLevelStageEvent<'_>) {
         client_outline::on_render_level_stage(&self.state, event);
-    }
-
-    fn gui_layer_draw(&self, host: &dyn ClientHost, event: &mut GuiLayerDrawEvent<'_>) {
-        client_hud::on_gui_layer_draw(host, &self.state, event);
     }
 }
 

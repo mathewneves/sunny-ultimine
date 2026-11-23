@@ -230,7 +230,13 @@ pub fn on_block_drops(
         .as_mut()
         .filter(|s| event.breaker == Some(s.player_uuid))
     {
-        session.drops.extend(event.drops.drain(..).map(|d| d.stack));
+        session.drops.extend(
+            event
+                .drops
+                .iter()
+                .filter_map(|d| d.stack().and_then(|s| s.project())),
+        );
+        event.drops.clear();
         session.xp_total = session.xp_total.saturating_add(event.experience);
         event.experience = 0;
     }

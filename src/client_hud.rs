@@ -1,6 +1,8 @@
 //! HUD overlay: the Ultimine status panel and the timed hint above the hotbar.
 
-use mod_api::{ClientHost, GuiLayer, GuiLayerDrawEvent, GuiLayerPlacement, RegisterGuiLayersEvent};
+use std::sync::Arc;
+
+use mod_api::{ClientHost, DrawContext, GuiLayerPlacement, RegisterGuiLayersEvent};
 use sunny_ultimine_core::cooldown::remaining_progress_until;
 
 use crate::state::{ModState, OVERLAY_LAYER_ID, epoch_millis};
@@ -15,11 +17,13 @@ const HINT_FROM_BOTTOM: f32 = 72.0;
 const HINT_FADE_MS: u64 = 500;
 
 /// Registers the overlay layer above every other HUD layer.
-pub fn register_gui_layers(event: &mut RegisterGuiLayersEvent<'_>) {
-    event.layers.push(GuiLayer {
-        id: OVERLAY_LAYER_ID.to_owned(),
-        placement: GuiLayerPlacement::AboveAll,
-    });
+pub fn register_gui_layers(state: &Arc<ModState>, event: &mut RegisterGuiLayersEvent<'_>) {
+    let state = Arc::clone(state);
+    event.layers.register(
+        OVERLAY_LAYER_ID.to_owned(),
+        GuiLayerPlacement::AboveAll,
+        Box::new(move |host, draw| draw_overlay(host, &state, draw)),
+    );
 }
 
 /// `0xRRGGBB` with alpha `a_mult` (`0.0..=1.0`) as `0xAARRGGBB`.
@@ -29,14 +33,7 @@ fn argb(rgb: u32, a_mult: f32) -> u32 {
 }
 
 /// Draws the overlay layer.
-pub fn on_gui_layer_draw(
-    host: &dyn ClientHost,
-    state: &ModState,
-    event: &mut GuiLayerDrawEvent<'_>,
-) {
-    if event.layer != OVERLAY_LAYER_ID {
-        return;
-    }
+fn draw_overlay(host: &dyn ClientHost, state: &ModState, draw: &mut dyn DrawContext) {
     let now = host.millis();
     let (alpha, lines, max_panel_width, cfg, cooldown_progress, hint) = {
         let cli = state.client();
@@ -49,7 +46,6 @@ pub fn on_gui_layer_draw(
             cli.hint_text.clone().filter(|&(_, expires)| now < expires),
         )
     };
-    let draw = &mut *event.draw;
     let [sw, sh] = draw.size();
 
     if let Some((text, expires)) = hint {

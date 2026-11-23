@@ -4,7 +4,8 @@
 use std::sync::Arc;
 
 use mod_api::{
-    BlockState, ClipHit, Hand, Host, HostBlockStates, ItemStack, LevelRef, PlayerRef, ServerHost,
+    BlockState, ClipHit, EquipmentSlot, Host, HostBlockStates, ItemStack, LevelRef, PlayerRef,
+    ServerHost,
 };
 use sunny_ultimine_core::config::SyncedServerConfig;
 use sunny_ultimine_core::cooldown::{is_on_cooldown, remaining_ms};
@@ -58,8 +59,12 @@ pub fn main_and_offhand(
         return (None, None);
     };
     (
-        living.hand_item(host, Hand::Main),
-        living.hand_item(host, Hand::Off),
+        living
+            .with_equipment(host, EquipmentSlot::MainHand, |s| s.project())
+            .flatten(),
+        living
+            .with_equipment(host, EquipmentSlot::OffHand, |s| s.project())
+            .flatten(),
     )
 }
 
@@ -175,8 +180,8 @@ pub fn can_ultimine_server(
 
 fn is_air(host: &dyn Host, state: BlockState) -> bool {
     matches!(
-        state.block().id(host).as_str(),
-        "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air"
+        state.block().id(host),
+        Some("minecraft:air" | "minecraft:cave_air" | "minecraft:void_air")
     )
 }
 

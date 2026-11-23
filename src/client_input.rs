@@ -1,7 +1,7 @@
 //! Client keybindings, input handling, the client-side "can ultimine" check and HUD line building.
 
 use mod_api::{
-    ClientHost, Flow, Hand, HostBlockStates, Identifier, ItemStack, KeyConflictContext,
+    ClientHost, EquipmentSlot, Flow, HostBlockStates, Identifier, ItemStack, KeyConflictContext,
     KeyRegistration, MouseScrollingEvent, PlayerRef, Registrar,
 };
 use sunny_ultimine_core::config::{ClientConfig, SyncedServerConfig};
@@ -48,15 +48,24 @@ pub fn register_key_mappings(r: &mut dyn Registrar) {
     }
 }
 
+fn key_is_down(host: &dyn ClientHost, id: &str) -> bool {
+    host.mod_key_mapping(MOD_ID, id)
+        .and_then(|m| m.is_down(host))
+        .unwrap_or(false)
+}
+
 /// Whether the shape menu is "sneaking": always when the config doesn't require it, otherwise
 /// Shift held (Control when the Ultimine key itself is bound to a Shift key).
 pub fn is_menu_sneaking(host: &dyn ClientHost, cfg: &ClientConfig) -> bool {
     if !cfg.require_sneak_for_menu {
         return true;
     }
-    let shift_bound = host.mod_key(MOD_ID, KEY_ULTIMINE).is_some_and(|(key, _)| {
-        key == "key.keyboard.left.shift" || key == "key.keyboard.right.shift"
-    });
+    let shift_bound = host
+        .mod_key_mapping(MOD_ID, KEY_ULTIMINE)
+        .and_then(|m| m.binding(host))
+        .is_ok_and(|(key, _)| {
+            key == "key.keyboard.left.shift" || key == "key.keyboard.right.shift"
+        });
     if shift_bound {
         host.modifiers().control()
     } else {
@@ -88,7 +97,7 @@ pub fn on_client_tick_post(host: &mut dyn ClientHost, state: &ModState) {
     }
 
     let now = host.millis();
-    let pressed = host.is_down(MOD_ID, KEY_ULTIMINE);
+    let pressed = key_is_down(host, KEY_ULTIMINE);
     let (was_pressed, cfg, server_cfg, scrolled, last_cycle_ms, cooldown_ready_at_ms) = {
         let cli = state.client();
         (
@@ -126,9 +135,9 @@ pub fn on_client_tick_post(host: &mut dyn ClientHost, state: &ModState) {
         && (pressed || !cfg.require_ultimine_key_for_cycling)
         && sneaking
     {
-        let dir = if host.is_down(MOD_ID, KEY_NEXT_SHAPE) {
+        let dir = if key_is_down(host, KEY_NEXT_SHAPE) {
             Some(true)
-        } else if host.is_down(MOD_ID, KEY_PREV_SHAPE) {
+        } else if key_is_down(host, KEY_PREV_SHAPE) {
             Some(false)
         } else {
             None
@@ -278,8 +287,12 @@ fn can_ultimine_status(
     let Some(living) = host.living(player.entity()) else {
         return CanUltimineResult::NoBlockTargeted;
     };
-    let main = living.hand_item(host, Hand::Main);
-    let off = living.hand_item(host, Hand::Off);
+    let main = living
+        .with_equipment(host, EquipmentSlot::MainHand, |s| s.project())
+        .flatten();
+    let off = living
+        .with_equipment(host, EquipmentSlot::OffHand, |s| s.project())
+        .flatten();
     if is_blocked_tool(host, main.as_ref(), off.as_ref()) {
         return CanUltimineResult::BlockedTool;
     }

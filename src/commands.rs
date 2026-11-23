@@ -1,11 +1,11 @@
-//! `/sunny_ultimine` (status, shape, config) and, in `dev` builds with `SUNNY_ULTIMINE_DEV=1`, the
+//! `/sunny_ultimine` (status, shape, config) and, when `SUNNY_ULTIMINE_DEV=1`, the
 //! headless-check `/sunny_ultimine_dev`.
 
 use std::sync::Arc;
 
 use mod_api::{
-    Command, CommandArgumentValue as V, CommandInvocation, CommandSource, ConfigPath, Flow, Host,
-    PlayerRef, ServerHost, Text,
+    Command, CommandArgumentValue as V, CommandInvocation, CommandRegistration, CommandSource,
+    ConfigPath, Host, PlayerRef, ServerHost, Text,
 };
 use sunny_ultimine_core::cooldown::is_on_cooldown;
 use sunny_ultimine_core::shapes::ShapeId;
@@ -16,12 +16,19 @@ use crate::state::{ModState, SERVER_CONFIG_FILE, epoch_millis};
 
 const ROOT: &str = "sunny_ultimine";
 
-/// Adds the mod's command usages.
-pub fn register_commands(commands: &mut Vec<Command>) {
-    commands.push(Command::new("sunny_ultimine status"));
-    commands.push(Command::new("sunny_ultimine shape [shape:word]"));
-    commands.push(Command::new("sunny_ultimine config get <key:word>"));
-    commands.push(Command::op(
+/// Adds the mod's command usages with bound executors.
+pub fn register_commands(state: &Arc<ModState>, commands: &mut Vec<CommandRegistration>) {
+    let mut push = |cmd: Command| {
+        let st = Arc::clone(state);
+        commands.push(cmd.executes(move |host, source, invocation| {
+            run_command(host, &st, source, invocation);
+            Ok(1)
+        }));
+    };
+    push(Command::new("sunny_ultimine status"));
+    push(Command::new("sunny_ultimine shape [shape:word]"));
+    push(Command::new("sunny_ultimine config get <key:word>"));
+    push(Command::op(
         "sunny_ultimine config set <key:word> <value:text>",
         2,
     ));
@@ -40,27 +47,26 @@ pub fn register_commands(commands: &mut Vec<Command>) {
             "sunny_ultimine_dev break <player:word> <pos:block_pos> <face:word>",
             "sunny_ultimine_dev right_click <player:word> <pos:block_pos> <face:word>",
         ] {
-            commands.push(Command::op(usage, 2));
+            push(Command::op(usage, 2));
         }
     }
 }
 
-/// Runs an `/sunny_ultimine` or `/sunny_ultimine_dev` invocation; `Flow::Continue` for any other command.
-pub fn run_command(
+/// Dispatches an `/sunny_ultimine` or `/sunny_ultimine_dev` invocation.
+fn run_command(
     host: &mut dyn ServerHost,
     state: &ModState,
     source: &CommandSource,
     command: &CommandInvocation,
-) -> Flow {
+) {
     let words: Vec<&str> = command.literals.iter().map(String::as_str).collect();
     match words.split_first() {
         Some((&ROOT, rest)) => run_main(host, state, source, command, rest),
         Some((&dev::ROOT, rest)) if dev::enabled() => {
             dev::run_dev(host, state, source, command, rest)
         }
-        _ => return Flow::Continue,
+        _ => {}
     }
-    Flow::Cancel
 }
 
 fn word<'a>(command: &'a CommandInvocation, name: &str) -> Option<&'a str> {
@@ -256,7 +262,14 @@ mod dev {
     fn item_name(host: &dyn Host, stack: Option<&ItemStack>) -> String {
         stack.map_or_else(
             || "empty".to_owned(),
-            |s| format!("{}x{}@{}", s.item().id(host), s.count(), s.damage()),
+            |s| {
+                format!(
+                    "{}x{}@{}",
+                    s.item().id(host).unwrap_or("unknown"),
+                    s.count(),
+                    s.damage()
+                )
+            },
         )
     }
 
@@ -301,15 +314,17 @@ mod dev {
         let mut items: BTreeMap<String, u32> = BTreeMap::new();
         let mut item_entities = 0usize;
         if let Some(level) = host.level("minecraft:overworld") {
-            for entity in level.entities_in(&*host, min, max).unwrap_or_default() {
+            let _ = level.visit_entities_in(&*host, min, max, &mut |entity| {
                 if let Some(ie) = host.item_entity(entity)
-                    && let Some(stack) = ie.stack(&*host)
+                    && let Some(stack) = ie.with_stack(&*host, |s| s.project()).flatten()
                     && stack.count() > 0
                 {
                     item_entities += 1;
-                    *items.entry(stack.item().id(&*host)).or_default() += stack.count();
+                    let id = stack.item().id(&*host).unwrap_or("unknown").to_owned();
+                    *items.entry(id).or_default() += stack.count();
                 }
-            }
+                std::ops::ControlFlow::Continue(())
+            });
         }
         let orbs = host.experience_orbs("minecraft:overworld", min, max);
         let xp_orbs = orbs.len();
@@ -531,7 +546,11 @@ mod dev {
                             format!("DEV_BREAK ok=false player={name} pos={at} reason=unloaded")
                         }
                         Some(block_state) => {
-                            let block = block_state.block().id(&*host);
+                            let block = block_state
+                                .block()
+                                .id(&*host)
+                                .unwrap_or("unknown")
+                                .to_owned();
                             let can =
                                 can_ultimine_server(host, state, player, level, pos, block_state);
                             let ok = execute_ultimine_break(
