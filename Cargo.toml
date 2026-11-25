@@ -2,7 +2,7 @@
 name = "mod-sunny-ultimine"
 description = "Sunny Ultimine native trait mod for Sunrise"
 license = "Beerware"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 [lib]

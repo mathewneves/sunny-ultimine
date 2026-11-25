@@ -1,6 +1,6 @@
 id = "sunny_ultimine"
 name = "Sunny Ultimine"
-version = "0.1.0"
+version = "0.1.1"
 description = "Break whole ore veins, tunnels and stairways in one swing, apply tool actions across many blocks at once, and harvest crops in bulk. Built natively for Sunrise."
 authors = ["mathewneves"]
 license = "Beerware"
